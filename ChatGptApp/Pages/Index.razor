@@ -1,0 +1,71 @@
+﻿@page "/"
+@using Newtonsoft.Json;
+@using System.Text;
+
+<PageTitle>Chatbot</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col-4">
+            <p>@testing</p>
+        </div>
+        <div class="col-4">
+            <div class="messages">
+                @for (int i = 0; i < messages.Count; i++)
+                {
+                    @if (i % 2 == 0)
+                    {
+                        <div class="question">@messages[i]</div>
+                    } else
+                    {
+                        <div class="response">@messages[i]</div>
+                    }
+                }
+                
+            </div>
+            <div class="textMessage">
+                <input @bind="message" />
+                <button @onclick="SendMessage">Send</button>
+            </div>
+        </div>
+        <div class="col-4">
+        </div>
+
+    </div>
+</div>
+
+@code{
+    public string message;
+    public string testing;
+    public List<string> messages = new List<string>();
+    private static HttpClient Http = new HttpClient();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    public async Task SendMessage()
+    {
+        Http = new HttpClient();
+        messages.Add(message);
+
+        var apiKey = "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";
+        Http.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+        var jsonContent = new
+        {
+            prompt = message,
+            model = "text-davinci-003",
+            max_tokens = 1000
+        };
+
+        var responseContent = await Http.PostAsync("https://api.openai.com/v1/completions", new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json"));
+
+        var resContext = await responseContent.Content.ReadAsStringAsync();
+
+        var data = JsonConvert.DeserializeObject<dynamic>(resContext);
+        messages.Add(data.choices[0].text.ToString());
+        StateHasChanged();
+    }
+}
